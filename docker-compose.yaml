@@ -1,6 +1,17 @@
 version: '3.8'
 
 services:
+  api:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+      - DB_NAME=swiftcodes
+      - LOAD_INITIAL_DATA=true
+      - SWIFT_DATA_FILE=/app/configs/swift_data.csv
   db:
     image: mongo:6
     container_name: mongo
