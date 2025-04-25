@@ -11,7 +11,14 @@ services:
       - MONGO_URI=mongodb://mongo:27017
       - DB_NAME=swiftcodes
       - LOAD_INITIAL_DATA=true
-      - SWIFT_DATA_FILE=/app/configs/swift_data.csv
+      - SWIFT_DATA_FILE=configs/default-data.csv
+      - VERSION=v1
+      - DEBUG=true
+    volumes:
+      - ./backend:/app
+      - go-mod-cache:/go/pkg/mod
+    command: ["go", "run", "./cmd/api/main.go"]
+    
   db:
     image: mongo:6
     container_name: mongo
@@ -22,5 +29,5 @@ services:
 
 volumes:
   mongodb_data:
-
+  go-mod-cache:
 

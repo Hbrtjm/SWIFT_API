@@ -10,6 +10,9 @@
 
 # Test binary, built with `go test -c`
 *.test
+# Except for the testing Dockerfile
+!Dockerfile.test
+
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
