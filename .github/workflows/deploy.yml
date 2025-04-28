@@ -45,4 +45,5 @@ jobs:
           SWIFT_DATA_FILE: ./configs/default-data.csv
           VERSION: v1
           DEBUG: false
-        run: ./scripts/deploy.sh
+        run: chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh
+
