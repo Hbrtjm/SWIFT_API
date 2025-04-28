@@ -10,7 +10,7 @@ COPY . .
 
 # DEVELOPMENT 
 
-# CMD ["air"]
+CMD ["go", "run", "./cmd/api/main.go"]
 
 # DEPLOYMENT
 
