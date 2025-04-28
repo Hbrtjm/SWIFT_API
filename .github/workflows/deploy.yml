@@ -1,4 +1,4 @@
-name: Go Tests
+name: Deployment
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  deploy:
     runs-on: ubuntu-latest
     services:
       mongo:
@@ -37,12 +37,12 @@ jobs:
       - name: Install dependencies
         run: cd ./backend && go mod download
 
-      - name: Run tests
+      - name: Deployment
         env:
           MONGO_URI: mongodb://localhost:27017
           DB_NAME: swiftcodes
           LOAD_INITIAL_DATA: true
           SWIFT_DATA_FILE: ./configs/default-data.csv
           VERSION: v1
-          DEBUG: true
-        run: cd ./backend && go test ./... -v
+          DEBUG: false
+        run: ./scripts/deploy.sh
