@@ -10,7 +10,15 @@
 
 ### Linux or WSL
 
+#### Using run script
+
+#### Manual launch
+
 ### Windows 10/11
+
+#### Using run script
+
+#### Manual launch
 
 <!-- TODO - instructions on how to set up and run the application -->
 

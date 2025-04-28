@@ -1,5 +1,3 @@
-// backend/internal/parser/swift_parser.go
-
 package parser
 
 import (
@@ -7,27 +5,24 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Hbrtjm/SWIFT_API/internal/db/models"
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/db/models"
 )
 
-// SwiftCodeParser parses SWIFT code data
-type SwiftCodeParser struct{}
+// SwiftFileParser parses SWIFT code data
+type SwiftFileParser struct{}
 
-// NewSwiftCodeParser creates a new SwiftCodeParser
-func NewSwiftCodeParser() *SwiftCodeParser {
-	return &SwiftCodeParser{}
+func NewSwiftFileParser() *SwiftFileParser {
+	return &SwiftFileParser{}
 }
 
 // ParseFile parses a CSV file containing SWIFT codes and returns array of models.Bank
-func (p *SwiftCodeParser) ParseFile(filename string) ([]models.Bank, error) {
-	// Open the file
+func (p *SwiftFileParser) ParseFile(filename string) ([]models.Bank, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	// Read the CSV file
 	reader := csv.NewReader(file)
 	reader.Comma = ';' // Set the delimiter to semicolon
 	records, err := reader.ReadAll()
@@ -40,14 +35,12 @@ func (p *SwiftCodeParser) ParseFile(filename string) ([]models.Bank, error) {
 		return []models.Bank{}, nil
 	}
 
-	// Map headers for flexible access
 	headers := records[0]
 	headerMap := make(map[string]int)
 	for i, header := range headers {
 		headerMap[strings.ToUpper(header)] = i
 	}
 
-	// Process records into Bank models
 	result := make([]models.Bank, 0, len(records)-1)
 	for _, record := range records[1:] {
 		if len(record) < len(headers) {
@@ -56,25 +49,25 @@ func (p *SwiftCodeParser) ParseFile(filename string) ([]models.Bank, error) {
 
 		swiftCode := getFieldValue(record, headerMap, "SWIFT CODE")
 		branchCode := ""
-		isHeadOffice := false
+		IsHeadquarter := false
 		if len(swiftCode) == 11 {
-			branchCode = swiftCode[8:]
-			isHeadOffice = branchCode == "XXX"
+			branchCode = swiftCode[:8]
+			IsHeadquarter = swiftCode[8:] == "XXX"
 		} else if len(swiftCode) == 8 {
-			isHeadOffice = true
+			IsHeadquarter = true
 		}
 
 		bank := models.Bank{
-			CountryCode:  strings.ToUpper(getFieldValue(record, headerMap, "COUNTRY ISO2 CODE")),
-			SwiftCode:    swiftCode,
-			CodeType:     getFieldValue(record, headerMap, "CODE TYPE"),
-			BankName:     getFieldValue(record, headerMap, "NAME"),
-			Address:      getFieldValue(record, headerMap, "ADDRESS"),
-			TownName:     getFieldValue(record, headerMap, "TOWN NAME"),
-			CountryName:  strings.ToUpper(getFieldValue(record, headerMap, "COUNTRY NAME")),
-			TimeZone:     getFieldValue(record, headerMap, "TIME ZONE"),
-			IsHeadOffice: isHeadOffice,
-			BranchCode:   branchCode,
+			CountryCode:   strings.ToUpper(getFieldValue(record, headerMap, "COUNTRY ISO2 CODE")),
+			SwiftCode:     swiftCode,
+			CodeType:      getFieldValue(record, headerMap, "CODE TYPE"),
+			BankName:      getFieldValue(record, headerMap, "NAME"),
+			Address:       getFieldValue(record, headerMap, "ADDRESS"),
+			TownName:      getFieldValue(record, headerMap, "TOWN NAME"),
+			CountryName:   strings.ToUpper(getFieldValue(record, headerMap, "COUNTRY NAME")),
+			TimeZone:      getFieldValue(record, headerMap, "TIME ZONE"),
+			IsHeadquarter: IsHeadquarter,
+			BranchCode:    branchCode,
 		}
 
 		result = append(result, bank)
@@ -83,10 +76,9 @@ func (p *SwiftCodeParser) ParseFile(filename string) ([]models.Bank, error) {
 	return result, nil
 }
 
-// getFieldValue safely gets a field value from a record using the header map
 func getFieldValue(record []string, headerMap map[string]int, fieldName string) string {
 	if index, exists := headerMap[fieldName]; exists && index < len(record) {
-		return record[index]
+		return strings.TrimSpace(record[index])
 	}
 	return ""
 }

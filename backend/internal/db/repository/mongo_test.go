@@ -7,22 +7,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Hbrtjm/SWIFT_API/internal/db/models"
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/db/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 const (
-	testMongoURI = "mongodb://localhost:27017"
-	testDBName   = "swiftcodes_test"
+	testMongoURI       = "mongodb://localhost:27017"
+	testDBName         = "swiftcodes_test"
+	testCollectionName = "banks_test"
 )
 
 var repo *MongoRepository
 
 // Setup function to initialize the test database
 func setupTestDB() (*MongoRepository, error) {
-	r, err := NewMongoRepository(testMongoURI, testDBName)
+	r, err := NewMongoRepository(testMongoURI, testDBName, testCollectionName)
 	if err != nil {
 		return nil, err
 	}
@@ -58,40 +59,34 @@ func TestMain(m *testing.M) {
 func addTestData(t *testing.T) {
 	testBanks := []models.Bank{
 		{
-			CountryCode:  "AL",
-			SwiftCode:    "AAISALTRXXX",
-			CodeType:     "BIC11",
-			BankName:     "UNITED BANK OF ALBANIA SH.A",
-			Address:      "HYRJA 3 RR. DRITAN HOXHA ND. 11 TIRANA, TIRANA, 1023",
-			TownName:     "TIRANA",
-			CountryName:  "ALBANIA",
-			TimeZone:     "Europe/Tirane",
-			IsHeadOffice: true,
-			BranchCode:   "XXX",
+			CountryCode: "AL",
+			SwiftCode:   "AAISALTRXXX",
+			CodeType:    "BIC11",
+			BankName:    "UNITED BANK OF ALBANIA SH.A",
+			Address:     "HYRJA 3 RR. DRITAN HOXHA ND. 11 TIRANA, TIRANA, 1023",
+			TownName:    "TIRANA",
+			CountryName: "ALBANIA",
+			TimeZone:    "Europe/Tirane",
 		},
 		{
-			CountryCode:  "BG",
-			SwiftCode:    "ABIEBGS1XXX",
-			CodeType:     "BIC11",
-			BankName:     "ABV INVESTMENTS LTD",
-			Address:      "TSAR ASEN 20  VARNA, VARNA, 9002",
-			TownName:     "VARNA",
-			CountryName:  "BULGARIA",
-			TimeZone:     "Europe/Sofia",
-			IsHeadOffice: true,
-			BranchCode:   "XXX",
+			CountryCode: "BG",
+			SwiftCode:   "ABIEBGS1XXX",
+			CodeType:    "BIC11",
+			BankName:    "ABV INVESTMENTS LTD",
+			Address:     "TSAR ASEN 20  VARNA, VARNA, 9002",
+			TownName:    "VARNA",
+			CountryName: "BULGARIA",
+			TimeZone:    "Europe/Sofia",
 		},
 		{
-			CountryCode:  "UY",
-			SwiftCode:    "AFAAUYM1XXX",
-			CodeType:     "BIC11",
-			BankName:     "AFINIDAD A.F.A.P.S.A.",
-			Address:      "PLAZA INDEPENDENCIA 743  MONTEVIDEO, MONTEVIDEO, 11000",
-			TownName:     "MONTEVIDEO",
-			CountryName:  "URUGUAY",
-			TimeZone:     "America/Montevideo",
-			IsHeadOffice: true,
-			BranchCode:   "XXX",
+			CountryCode: "UY",
+			SwiftCode:   "AFAAUYM1XXX",
+			CodeType:    "BIC11",
+			BankName:    "AFINIDAD A.F.A.P.S.A.",
+			Address:     "PLAZA INDEPENDENCIA 743  MONTEVIDEO, MONTEVIDEO, 11000",
+			TownName:    "MONTEVIDEO",
+			CountryName: "URUGUAY",
+			TimeZone:    "America/Montevideo",
 		},
 	}
 
@@ -112,11 +107,11 @@ func cleanTestData(t *testing.T) {
 
 // TestNewMongoRepository tests the creation of a new repository
 func TestNewMongoRepository(t *testing.T) {
-	repo, err := NewMongoRepository(testMongoURI, testDBName)
+	repo, err := NewMongoRepository(testMongoURI, testDBName, testCollectionName)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 
-	repo, err = NewMongoRepository("mongodb://invalid:27017", testDBName)
+	repo, err = NewMongoRepository("mongodb://invalid:27017", testDBName, testCollectionName)
 	assert.Error(t, err)
 	assert.Nil(t, repo)
 }
@@ -126,16 +121,14 @@ func TestInsert(t *testing.T) {
 	cleanTestData(t)
 
 	bank := models.Bank{
-		CountryCode:  "AL",
-		SwiftCode:    "AAISALTRXXX",
-		CodeType:     "BIC11",
-		BankName:     "UNITED BANK OF ALBANIA SH.A",
-		Address:      "HYRJA 3 RR. DRITAN HOXHA ND. 11 TIRANA, TIRANA, 1023",
-		TownName:     "TIRANA",
-		CountryName:  "ALBANIA",
-		TimeZone:     "Europe/Tirane",
-		IsHeadOffice: true,
-		BranchCode:   "XXX",
+		CountryCode: "AL",
+		SwiftCode:   "AAISALTRXXX",
+		CodeType:    "BIC11",
+		BankName:    "UNITED BANK OF ALBANIA SH.A",
+		Address:     "HYRJA 3 RR. DRITAN HOXHA ND. 11 TIRANA, TIRANA, 1023",
+		TownName:    "TIRANA",
+		CountryName: "ALBANIA",
+		TimeZone:    "Europe/Tirane",
 	}
 	err := repo.Insert(bank)
 	assert.NoError(t, err)
@@ -157,28 +150,24 @@ func TestInsertMany(t *testing.T) {
 
 	banks := []interface{}{
 		models.Bank{
-			CountryCode:  "AL",
-			SwiftCode:    "MULTAL123XXX",
-			CodeType:     "BIC11",
-			BankName:     "Multi Bank Albania",
-			Address:      "Street 1, Tirana",
-			TownName:     "TIRANA",
-			CountryName:  "ALBANIA",
-			TimeZone:     "Europe/Tirane",
-			IsHeadOffice: true,
-			BranchCode:   "XXX",
+			CountryCode: "AL",
+			SwiftCode:   "MULTAL123XXX",
+			CodeType:    "BIC11",
+			BankName:    "Multi Bank Albania",
+			Address:     "Street 1, Tirana",
+			TownName:    "TIRANA",
+			CountryName: "ALBANIA",
+			TimeZone:    "Europe/Tirane",
 		},
 		models.Bank{
-			CountryCode:  "UY",
-			SwiftCode:    "MULTUY456XXX",
-			CodeType:     "BIC11",
-			BankName:     "Multi Bank Uruguay",
-			Address:      "Street 2, Montevideo",
-			TownName:     "MONTEVIDEO",
-			CountryName:  "URUGUAY",
-			TimeZone:     "America/Montevideo",
-			IsHeadOffice: true,
-			BranchCode:   "XXX",
+			CountryCode: "UY",
+			SwiftCode:   "MULTUY456XXX",
+			CodeType:    "BIC11",
+			BankName:    "Multi Bank Uruguay",
+			Address:     "Street 2, Montevideo",
+			TownName:    "MONTEVIDEO",
+			CountryName: "URUGUAY",
+			TimeZone:    "America/Montevideo",
 		},
 	}
 

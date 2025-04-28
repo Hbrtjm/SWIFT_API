@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Hbrtjm/SWIFT_API/internal/api"
-	"github.com/Hbrtjm/SWIFT_API/internal/db/repository"
-	"github.com/Hbrtjm/SWIFT_API/internal/parser"
-	"github.com/Hbrtjm/SWIFT_API/internal/service"
-	"github.com/Hbrtjm/SWIFT_API/internal/util"
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/api"
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/db/repository"
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/parser"
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/service"
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/util"
 )
 
 func main() {
@@ -32,21 +32,25 @@ func main() {
 	if dbName == "" {
 		dbName = "swiftcodes"
 	}
+	collectionName := os.Getenv("COLLECTION_NAME")
+	if collectionName == "" {
+		collectionName = "swiftcodes"
+	}
 	// We don't need that message in production, but it's useful for debugging
 	if debugMode == "true" {
 		logger.Printf("Connecting to MongoDB at %s", mongoURI)
 	}
 
-	repo, err := repository.NewMongoRepository(mongoURI, dbName)
+	repo, err := repository.NewMongoRepository(mongoURI, dbName, collectionName)
 	logger.Printf("Connected to MongoDB at %s %s", repo.Collection().Database().Name(), err)
 	if err != nil {
 		logger.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer repo.Close()
-	swiftFileParser := parser.NewSwiftCodeParser()
+	swiftFileParser := parser.NewSwiftFileParser()
 	swiftService := service.NewSwiftCodeService(repo, swiftFileParser, logger)
 
-	// // Load initial data if needed
+	// Load initial data if needed
 	if os.Getenv("LOAD_INITIAL_DATA") == "true" {
 		filename := os.Getenv("SWIFT_DATA_FILE")
 		if filename == "" {
@@ -59,7 +63,7 @@ func main() {
 		}
 
 		// Create database indices for better performance
-		err = util.CreateIndices(repo, logger)
+		err = repo.CreateIndices(logger)
 		if err != nil {
 			logger.Printf("Error creating database indices: %v", err)
 		}
