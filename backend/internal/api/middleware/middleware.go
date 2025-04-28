@@ -1,5 +1,3 @@
-// backend/internal/api/middleware/middleware.go
-
 package middleware
 
 import (
