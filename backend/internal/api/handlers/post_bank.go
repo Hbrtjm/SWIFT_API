@@ -10,53 +10,58 @@ import (
 
 // PostBankEntry handles POST request to create a new SWIFT code
 func (rh *RequestsHandler) PostBankEntry(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	// Define a struct that matches the expected JSON format
 	swiftCodeRequest := util.NewPostRequest()
 
 	// Decode the request body into the struct
 	err := json.NewDecoder(r.Body).Decode(&swiftCodeRequest)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
+		rh.logger.Error("Invalid request body: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
-		rh.logger.Printf("Invalid request body: %v", err)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request body"})
 		return
 	}
 
-	// Validate the SWIFT code
-	if len(swiftCodeRequest.SwiftCode) < 8 {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "SWIFT code must be at least 8 characters"})
-		return
-	}
-
-	// Convert to map to work with existing service
 	bankData := map[string]interface{}{
-		"address":       swiftCodeRequest.Address,
-		"bankName":      swiftCodeRequest.BankName,
-		"countryCode":   strings.ToUpper(swiftCodeRequest.CountryISO2),
+		"swiftCode":     strings.ToUpper(swiftCodeRequest.SwiftCode),
+		"countryISO2":   strings.ToUpper(swiftCodeRequest.CountryISO2),
 		"countryName":   strings.ToUpper(swiftCodeRequest.CountryName),
-		"isHeadquarter": swiftCodeRequest.SwiftCode[8:] == "XXX",
-		"swiftCode":     swiftCodeRequest.SwiftCode,
-		"branchCode":    swiftCodeRequest.SwiftCode[:8],
+		"bankName":      swiftCodeRequest.BankName,
+		"address":       swiftCodeRequest.Address,
+		"townName":      swiftCodeRequest.TownName,
+		"timeZone":      swiftCodeRequest.TimeZone,
+		"isHeadquarter": swiftCodeRequest.IsHeadquarter,
+		"codeType":      swiftCodeRequest.CodeType,
 	}
 
-	// TODO - Maybe I could could work on the same address of bank data
+	// Pass bank data to service layer for processing
 	err = rh.service.PostBankData(bankData)
+
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		rh.logger.Printf("Error creating SWIFT code: %v", err)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create SWIFT code"})
+
+		rh.logger.Error("Error creating bank: %v", err)
+
+		statusCode := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "validation error") ||
+			strings.Contains(err.Error(), "already exists") {
+			statusCode = http.StatusBadRequest
+		}
+
+		errResponse := map[string]string{"error": "Country code not found"}
+		if IsAPIDebugActive() {
+			errResponse["error"] = err.Error()
+		}
+
+		w.WriteHeader(statusCode)
+		json.NewEncoder(w).Encode(errResponse)
 		return
 	}
 
-	// Set the content type and status before writing the response
-	w.Header().Set("Content-Type", "application/json")
+	// Success response
 	w.WriteHeader(http.StatusCreated)
-
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "SWIFT code created successfully",
+		"message": "Bank with SWIFT code created successfully",
 	})
 }
