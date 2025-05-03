@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -10,11 +10,20 @@ COPY . .
 
 # DEVELOPMENT 
 
-CMD ["go", "run", "./cmd/api/main.go"]
+# CMD ["go", "run", "./cmd/api/main.go"]
 
 # DEPLOYMENT
 
-# RUN go build -o main ./cmd/api/main.go
-# RUN chmod +x ./main
+RUN go build -o main ./cmd/api/main.go
 
-# CMD ["./main"]
+FROM alpine:latest
+
+WORKDIR /app
+
+COPY --from=builder /app/main .
+COPY --from=builder /app/configs ./configs
+
+RUN mkdir /app/logs
+RUN chmod +x ./main
+
+CMD ["./main"]

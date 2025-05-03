@@ -8,7 +8,7 @@ import (
 
 // log is a helper method that writes formatted log messages
 func (l *Logger) log(level, format string, v ...interface{}) {
-	timestamp := time.Now().Format("2010/04/10 21:37:42")
+	timestamp := time.Now().Format("2006/01/02 15:04:05")
 	prefix := ""
 	if l.prefix != "" {
 		prefix = l.prefix + " "

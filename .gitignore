@@ -34,3 +34,7 @@ go.work.sum
 # Logs
 *.log
 logs/
+
+# Executables
+./backend/main
+*.exe

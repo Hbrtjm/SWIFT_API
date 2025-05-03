@@ -22,9 +22,12 @@ func main() {
 
 	loggerPrefix := util.GetEnvOrDefault("LOGGER_PREFIX", "swiftcodes")
 
-	logFileName := time.Now().Format("2007_04_10-15_04_05") + "-" + loggerPrefix + ".log"
+	logFileName := time.Now().Format("2006_01_02-15_04_05") + "-" + loggerPrefix + ".log"
 	logger, err := middleware.FileDefaultLogger("./logs", logFileName, loggerPrefix)
-	if err != nil {
+	
+	logToFile := util.GetEnvOrDefault("LOG_TO_FILE", "false")
+
+	if err != nil || logToFile == "false" {
 		fmt.Printf("Failed to create a logger: %v\n", err) // Added newline
 		logger = middleware.NewDefaultLogger(loggerPrefix)
 	}
