@@ -2,14 +2,16 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/Hbrtjm/SWIFT_API/backend/internal/api"
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/api/middleware"
 	"github.com/Hbrtjm/SWIFT_API/backend/internal/db/repository"
 	"github.com/Hbrtjm/SWIFT_API/backend/internal/parser"
 	"github.com/Hbrtjm/SWIFT_API/backend/internal/service"
@@ -18,59 +20,68 @@ import (
 
 func main() {
 
-	logger := log.New(os.Stdout, "SWIFT-API: ", log.LstdFlags)
+	loggerPrefix := util.GetEnvOrDefault("LOGGER_PREFIX", "swiftcodes")
+
+	logFileName := time.Now().Format("2007_04_10-15_04_05") + "-" + loggerPrefix + ".log"
+	logger, err := middleware.FileDefaultLogger("./logs", logFileName, loggerPrefix)
+	if err != nil {
+		fmt.Printf("Failed to create a logger: %v\n", err) // Added newline
+		logger = middleware.NewDefaultLogger(loggerPrefix)
+	}
+
+	speedupMode := util.GetEnvOrDefault("SPEEDUP_MODE", "false")
+	if value, err := strconv.ParseBool(speedupMode); err == nil && value {
+		logger = middleware.NewNoLogger()
+	}
 
 	// Connect to MongoDB
-	mongoURI := os.Getenv("MONGO_URI")
-	if mongoURI == "" {
-		mongoURI = "mongodb://localhost:27017"
-	}
+	mongoURI := util.GetEnvOrDefault("MONGO_URI", "mongodb://localhost:27017")
 
-	debugMode := os.Getenv("DEBUG_MODE")
+	dbName := util.GetEnvOrDefault("DB_NAME", "swiftcodes")
 
-	dbName := os.Getenv("DB_NAME")
-	if dbName == "" {
-		dbName = "swiftcodes"
-	}
-	collectionName := os.Getenv("COLLECTION_NAME")
-	if collectionName == "" {
-		collectionName = "swiftcodes"
-	}
-	// We don't need that message in production, but it's useful for debugging
-	if debugMode == "true" {
-		logger.Printf("Connecting to MongoDB at %s", mongoURI)
-	}
+	banksCollectionName := util.GetEnvOrDefault("BANKS_COLLECTION_NAME", "banks")
 
-	repo, err := repository.NewMongoRepository(mongoURI, dbName, collectionName)
-	logger.Printf("Connected to MongoDB at %s %s", repo.Collection().Database().Name(), err)
+	countriesCollectionName := util.GetEnvOrDefault("COUNTRIES_COLLECTION_NAME", "countries")
+
+	// Debug information about MongoDB connection
+	logger.Debug("Connecting to MongoDB at %s", mongoURI)
+
+	repo, err := repository.NewMongoRepository(mongoURI, dbName, banksCollectionName, countriesCollectionName)
 	if err != nil {
-		logger.Fatalf("Failed to connect to database: %v", err)
+		logger.Fatal("Failed to connect to database: %v", err)
 	}
-	defer repo.Close()
+
+	logger.Info("Connected to MongoDB at %s", repo.BanksCollection().Database().Name())
+	defer repo.CloseConnection()
+
 	swiftFileParser := parser.NewSwiftFileParser()
+
+	// Update the service to use our new logger
 	swiftService := service.NewSwiftCodeService(repo, swiftFileParser, logger)
 
 	// Load initial data if needed
-	if os.Getenv("LOAD_INITIAL_DATA") == "true" {
-		filename := os.Getenv("SWIFT_DATA_FILE")
-		if filename == "" {
-			filename = "configs/swift_data.csv" // Default file path
-		}
+	if util.GetEnvOrDefault("LOAD_INITIAL_DATA", "false") == "true" {
+		filename := util.GetEnvOrDefault("SWIFT_DATA_FILE", "configs/swift_data.csv")
 
 		err := util.LoadInitialDataIfNeeded(swiftService, repo, filename, logger)
 		if err != nil {
-			logger.Printf("Error with initial data process: %v", err)
+			logger.Error("Error with initial data process: %v", err)
 		}
 
 		// Create database indices for better performance
 		err = repo.CreateIndices(logger)
 		if err != nil {
-			logger.Printf("Error creating database indices: %v", err)
+			logger.Error("Error creating database indices: %v", err)
 		}
 	}
 
-	// ... and initialize the router with service
+	// Initialize the router with service and add our middleware
 	router := api.NewRouter(swiftService, logger)
+
+	// Configure and apply middleware
+	middlewareConfig := middleware.DefaultConfig()
+	middlewareConfig.LogRequestBody = true
+	middlewareConfig.LogResponseBody = true
 
 	// Configure server and run the server
 	srv := &http.Server{
@@ -80,10 +91,11 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+
 	go func() {
-		logger.Printf("Starting server on %s", srv.Addr)
+		logger.Info("Starting server on %s", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatalf("Server error: %v", err)
+			logger.Fatal("Server error: %v", err)
 		}
 	}()
 
@@ -92,15 +104,15 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Println("Shutting down server...")
+	logger.Info("Shutting down server...")
 
 	// Create a deadline to wait for the server to shut down
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Fatalf("Server forced to shutdown: %v", err)
+		logger.Fatal("Server forced to shutdown: %v", err)
 	}
 
-	logger.Println("Server exited properly")
+	logger.Info("Server exited properly")
 }

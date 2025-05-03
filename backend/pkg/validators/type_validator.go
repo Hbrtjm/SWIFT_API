@@ -9,6 +9,10 @@ import (
 
 type CodeTypeValidator struct{}
 
+func NewCodeTypeValidator() *CodeTypeValidator {
+	return &CodeTypeValidator{}
+}
+
 func (ctv *CodeTypeValidator) Validate(value interface{}) error {
 	codeType, ok := value.(string)
 	if !ok {

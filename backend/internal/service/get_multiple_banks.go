@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/db/models"
 )
 
 // GetMultipleSwiftCodes returns data for multiple SWIFT codes
@@ -12,9 +14,18 @@ func (s *SwiftCodeService) GetMultipleSwiftCodes(codes []string) ([]map[string]i
 
 	result := make([]map[string]interface{}, 0, len(codes))
 	for _, code := range codes {
-		data, err := s.repo.FindBySwiftCode(code)
-		if err == nil {
-			result = append(result, data)
+		bank, err := s.repo.FindBySwiftCode(code)
+		emptyBank := models.Bank{}
+		if err == nil && bank != emptyBank {
+			bankMap := mapBankToMap(&bank)
+
+			// Try to get country name, but don't fail if it's not found
+			countryName, err := s.repo.LookupCountryName(bank.CountryISO2)
+			if err == nil {
+				bankMap["countryName"] = countryName
+			}
+
+			result = append(result, bankMap)
 		}
 	}
 

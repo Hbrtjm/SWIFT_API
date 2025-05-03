@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// DeleteSwiftCode handles DELETE request for a SWIFT code
+// Handles DELETE request for a SWIFT code
 func (rh *RequestsHandler) DeleteSwiftCode(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	swiftCode := vars["swiftCode"]
@@ -17,14 +17,16 @@ func (rh *RequestsHandler) DeleteSwiftCode(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		rh.logger.Printf("Error deleting SWIFT code: %v", err)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to delete SWIFT code"})
+		errResponse := map[string]string{"message": "Failed to delete SWIFT code"}
+		if IsAPIDebugActive() {
+			errResponse["message"] = err.Error()
+		}
+		w.WriteHeader(http.StatusNotFound)
+		rh.logger.Error("Failed to delete SWIFT code:  %v", err)
+		json.NewEncoder(w).Encode(errResponse)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "SWIFT code deleted successfully",
-	})
+	json.NewEncoder(w).Encode(map[string]string{"message": "SWIFT code deleted successfully"})
 }

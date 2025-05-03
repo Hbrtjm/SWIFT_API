@@ -7,21 +7,31 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetBySwiftCodesByCountry returns all SWIFT codes for a given country
+// Returns all SWIFT codes for a given country
 func (rh *RequestsHandler) GetBySwiftCodesByCountry(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	countryCode := vars["countryISO2code"]
+	countryISO2 := vars["countryISO2code"]
 
-	rh.logger.Printf("Getting SWIFT codes for country: %s", countryCode)
+	if countryISO2 == "" {
+		rh.logger.Error("Country ISO2 code is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Country ISO2 code cannot be empty"})
+	}
 
-	response, err := rh.service.GetBySwiftCodesByCountry(countryCode)
+	rh.logger.Info("Getting SWIFT codes for country: %s", countryISO2)
+
+	response, err := rh.service.GetBySwiftCodesByCountry(countryISO2)
 
 	w.Header().Set("Content-Type", "application/json")
 
 	if err != nil {
+		errResponse := map[string]string{"message": "Country code not found"}
+		if IsAPIDebugActive() {
+			errResponse["message"] = err.Error()
+		}
 		w.WriteHeader(http.StatusNotFound)
-		rh.logger.Printf("Error fetching country code: %v", err)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Country code not found"})
+		rh.logger.Error("Error fetching country code: %v", err)
+		json.NewEncoder(w).Encode(errResponse)
 		return
 	}
 

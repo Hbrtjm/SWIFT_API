@@ -1,3 +1,5 @@
+// First, let's fix the ParseFile method in parser/parser.go to return both banks and countries
+
 package parser
 
 import (
@@ -15,11 +17,11 @@ func NewSwiftFileParser() *SwiftFileParser {
 	return &SwiftFileParser{}
 }
 
-// ParseFile parses a CSV file containing SWIFT codes and returns array of models.Bank
-func (p *SwiftFileParser) ParseFile(filename string) ([]models.Bank, error) {
+// ParseFile parses a CSV file containing SWIFT codes and returns array of models.Bank and an array of countries, that is models.Country
+func (p *SwiftFileParser) ParseFile(filename string) ([]models.Bank, []models.Country, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer file.Close()
 
@@ -27,12 +29,12 @@ func (p *SwiftFileParser) ParseFile(filename string) ([]models.Bank, error) {
 	reader.Comma = ';' // Set the delimiter to semicolon
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Check for minimum record count
 	if len(records) < 2 {
-		return []models.Bank{}, nil
+		return []models.Bank{}, []models.Country{}, nil
 	}
 
 	headers := records[0]
@@ -41,7 +43,10 @@ func (p *SwiftFileParser) ParseFile(filename string) ([]models.Bank, error) {
 		headerMap[strings.ToUpper(header)] = i
 	}
 
-	result := make([]models.Bank, 0, len(records)-1)
+	// Create maps to keep track of unique countries
+	countryMap := make(map[string]models.Country)
+
+	bankResults := make([]models.Bank, 0, len(records)-1)
 	for _, record := range records[1:] {
 		if len(record) < len(headers) {
 			continue
@@ -49,31 +54,48 @@ func (p *SwiftFileParser) ParseFile(filename string) ([]models.Bank, error) {
 
 		swiftCode := getFieldValue(record, headerMap, "SWIFT CODE")
 		branchCode := ""
-		IsHeadquarter := false
+		isHeadquarter := false
 		if len(swiftCode) == 11 {
 			branchCode = swiftCode[:8]
-			IsHeadquarter = swiftCode[8:] == "XXX"
+			isHeadquarter = swiftCode[8:] == "XXX"
 		} else if len(swiftCode) == 8 {
-			IsHeadquarter = true
+			isHeadquarter = true
+		}
+
+		countryISO2 := strings.ToUpper(getFieldValue(record, headerMap, "COUNTRY ISO2 CODE"))
+		countryName := strings.ToUpper(getFieldValue(record, headerMap, "COUNTRY NAME"))
+		timeZone := getFieldValue(record, headerMap, "TIME ZONE")
+
+		// Add country to the map if it doesn't exist
+		if _, exists := countryMap[countryISO2]; !exists && countryISO2 != "" {
+			countryMap[countryISO2] = models.Country{
+				CountryISO2: countryISO2,
+				CountryName: countryName,
+				TimeZone:    timeZone,
+			}
 		}
 
 		bank := models.Bank{
-			CountryCode:   strings.ToUpper(getFieldValue(record, headerMap, "COUNTRY ISO2 CODE")),
-			SwiftCode:     swiftCode,
-			CodeType:      getFieldValue(record, headerMap, "CODE TYPE"),
-			BankName:      getFieldValue(record, headerMap, "NAME"),
-			Address:       getFieldValue(record, headerMap, "ADDRESS"),
-			TownName:      getFieldValue(record, headerMap, "TOWN NAME"),
-			CountryName:   strings.ToUpper(getFieldValue(record, headerMap, "COUNTRY NAME")),
-			TimeZone:      getFieldValue(record, headerMap, "TIME ZONE"),
-			IsHeadquarter: IsHeadquarter,
+			CountryISO2: countryISO2,
+			SwiftCode:   swiftCode,
+			CodeType:    getFieldValue(record, headerMap, "CODE TYPE"),
+			BankName:    getFieldValue(record, headerMap, "NAME"),
+			Address:     getFieldValue(record, headerMap, "ADDRESS"),
+			TownName:    getFieldValue(record, headerMap, "TOWN NAME"),
+			IsHeadquarter: isHeadquarter,
 			BranchCode:    branchCode,
 		}
 
-		result = append(result, bank)
+		bankResults = append(bankResults, bank)
 	}
 
-	return result, nil
+	// Convert countries map to slice
+	countryResults := make([]models.Country, 0, len(countryMap))
+	for _, country := range countryMap {
+		countryResults = append(countryResults, country)
+	}
+
+	return bankResults, countryResults, nil
 }
 
 func getFieldValue(record []string, headerMap map[string]int, fieldName string) string {
