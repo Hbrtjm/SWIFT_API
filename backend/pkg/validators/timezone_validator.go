@@ -9,22 +9,25 @@ import (
 
 type TimeZoneValidator struct{}
 
+func NewTimeZoneValidator() *TimeZoneValidator {
+	return &TimeZoneValidator{}
+}
+
 func (tzv *TimeZoneValidator) Validate(value interface{}, countryName string) error {
 	timeZone, ok := value.(string)
 	if !ok {
-		return errors.New("timezone value must be a string")
+		return errors.New("timeZone value must be a string")
 	}
 
 	timeZone = strings.ToUpper(timeZone)
 
-	countryName = strings.ToLower(countryName)
+	// capitalName := strings.ToUpper(string(capitalName[0])) + capitalName[1:]
+	capitalName := `[A-Z]{1}[a-zA-Z]+`
 
-	// TODO - Placeholder, I need to create a dictionary of country names to their capital names
-	capitalName := strings.ToUpper(string(countryName[0])) + countryName[1:]
-
-	re := regexp.MustCompile(`^(Europe|Asia|America)/` + capitalName + `$`)
+	// re := regexp.MustCompile(`^(Europe|Asia|America)/` + capitalName + `$`)
+	re := regexp.MustCompile(`^[A-Za-z]+/` + capitalName + `$`)
 	if !re.MatchString(timeZone) {
-		return fmt.Errorf("invalid timezone format: %s", timeZone)
+		return fmt.Errorf("invalid timeZone format: %s", timeZone)
 	}
 
 	return nil
