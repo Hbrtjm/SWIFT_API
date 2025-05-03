@@ -15,7 +15,7 @@ func (rh *RequestsHandler) GetBySwiftCodesByCountry(w http.ResponseWriter, r *ht
 	if countryISO2 == "" {
 		rh.logger.Error("Country ISO2 code is empty")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Country ISO2 code cannot be empty"})
+		json.NewEncoder(w).Encode(map[string]string{"message": "Country ISO2 code cannot be empty"})
 	}
 
 	rh.logger.Info("Getting SWIFT codes for country: %s", countryISO2)
@@ -25,9 +25,9 @@ func (rh *RequestsHandler) GetBySwiftCodesByCountry(w http.ResponseWriter, r *ht
 	w.Header().Set("Content-Type", "application/json")
 
 	if err != nil {
-		errResponse := map[string]string{"error": "Country code not found"}
+		errResponse := map[string]string{"message": "Country code not found"}
 		if IsAPIDebugActive() {
-			errResponse["error"] = err.Error()
+			errResponse["message"] = err.Error()
 		}
 		w.WriteHeader(http.StatusNotFound)
 		rh.logger.Error("Error fetching country code: %v", err)

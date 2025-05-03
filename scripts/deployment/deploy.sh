@@ -1,11 +1,5 @@
 #!/bin/bash
 
-if wevtutil > /dev/null 2>&1; then
-    pritnf "You are running on Windows.\n"
-    printf "Please use run.ps1 or run.bat to run the application.\n"
-    exit 1
-fi
-
 # Check if Docker is installed
 docker --version > /dev/null 2>&1
 if [ $? -ne 0 ]; then
@@ -26,4 +20,23 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# INFORMATION - If the application is being run as a part of the github actions job, the cleanup will not failt, just continue to deployment
+
+# Clean up any existing containers from previous runs
+echo "Cleaning up existing containers..."
+docker compose down -v --remove-orphans 2>/dev/null || true
+
+# If it was built as a part of the test, remove any test containers taking up the port 27017
+containers=$(docker ps -a -q --filter "name=mongo" 2>/dev/null) || true
+if [ -n "$containers" ]; then
+  echo "Stopping and removing existing MongoDB containers..."
+  docker stop $containers || true
+  docker rm $containers || true
+fi
+
+# Start the application
+echo "Starting application..."
 docker compose up -d --build
+
+echo "Deployment complete. Containers are running:"
+docker ps

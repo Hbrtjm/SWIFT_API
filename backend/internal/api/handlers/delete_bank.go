@@ -17,9 +17,9 @@ func (rh *RequestsHandler) DeleteSwiftCode(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 
 	if err != nil {
-		errResponse := map[string]string{"error": "Failed to delete SWIFT code"}
+		errResponse := map[string]string{"message": "Failed to delete SWIFT code"}
 		if IsAPIDebugActive() {
-			errResponse["error"] = err.Error()
+			errResponse["message"] = err.Error()
 		}
 		w.WriteHeader(http.StatusNotFound)
 		rh.logger.Error("Failed to delete SWIFT code:  %v", err)

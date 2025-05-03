@@ -17,7 +17,7 @@ func (rh *RequestsHandler) GetBySwiftCode(w http.ResponseWriter, r *http.Request
 	if swiftCode == "" {
 		rh.logger.Error("SWIFT code is empty")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "SWIFT code is required"})
+		json.NewEncoder(w).Encode(map[string]string{"message": "SWIFT code is required"})
 		return
 	}
 
@@ -27,9 +27,9 @@ func (rh *RequestsHandler) GetBySwiftCode(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
-		errResponse := map[string]string{"error": "Country code not found"}
+		errResponse := map[string]string{"message": "Country code not found"}
 		if IsAPIDebugActive() {
-			errResponse["error"] = err.Error()
+			errResponse["message"] = err.Error()
 		}
 		w.WriteHeader(http.StatusNotFound)
 		rh.logger.Error("Error fetching SWIFT code: %v", err)

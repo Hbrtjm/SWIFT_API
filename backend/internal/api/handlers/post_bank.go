@@ -20,7 +20,7 @@ func (rh *RequestsHandler) PostBankEntry(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		rh.logger.Error("Invalid request body: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request body"})
+		json.NewEncoder(w).Encode(map[string]string{"message": "Invalid request body"})
 		return
 	}
 
@@ -49,9 +49,9 @@ func (rh *RequestsHandler) PostBankEntry(w http.ResponseWriter, r *http.Request)
 			statusCode = http.StatusBadRequest
 		}
 
-		errResponse := map[string]string{"error": "Country code not found"}
+		errResponse := map[string]string{"message": "Country code not found"}
 		if IsAPIDebugActive() {
-			errResponse["error"] = err.Error()
+			errResponse["message"] = err.Error()
 		}
 
 		w.WriteHeader(statusCode)

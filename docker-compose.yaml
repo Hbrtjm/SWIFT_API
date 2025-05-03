@@ -6,19 +6,24 @@ services:
   #   depends_on:
   #     - api
   api:
+    image: api:v1
     build: ./backend
     ports:
       - "8080:8080"
     depends_on:
       - db
     environment:
-      - MONGO_URI=mongodb://mongo:27017
-      - DB_NAME=swiftcodes
-      - COLLECTION_NAME=swiftcodes
-      - LOAD_INITIAL_DATA=true
-      - SWIFT_DATA_FILE=configs/default-data.csv
-      - VERSION=v1
-      - DEBUG=true
+      - MONGO_URI=mongodb://mongo:27017           # Mongo DB connection 
+      - DB_NAME=swiftcodes                        # Name of the database 
+      - LOGGER_PREFIX=api                         # Prefix for the logger  
+      - LOGGER_DEBUG=false                        # Enable debug logging        
+      - API_DEBUG=true                            # Enable API debug responses with full error messages
+      - BANKS_COLLECTION_NAME=banks               # Name of the collection for banks
+      - COUNTRIES_COLLECTION_NAME=countries       # Name of the collection for countries
+      - LOAD_INITIAL_DATA=true                    # Load initial data into the database
+      - SWIFT_DATA_FILE=configs/default-data.csv  # Inital data file
+      - VERSION=v1                                # Version of the API, will be used in the URL            
+      - SPEEDUP_MODE=true                         # Discards all of the logs, speeds up the API, but all of the log information will be lost
     volumes:
       - ./backend:/app
       - go-mod-cache:/go/pkg/mod
@@ -30,6 +35,32 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./backend/logs:/backend/logs
+      # - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./logging/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - api
+  loki:
+    image: grafana/loki:2.9.0
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - loki
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # !!!!!!!!!!!!!! Change this in production 
 
 volumes:
   mongodb_data:

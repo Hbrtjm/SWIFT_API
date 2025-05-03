@@ -1,0 +1,160 @@
+name: Test & Deployment
+
+on:
+  push:
+    branches: [ development, main ]
+  pull_request:
+    branches: [ development, main ]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cleanup Docker resources
+        run: |
+          # Clean up any existing Docker Compose resources
+          docker compose down -v --remove-orphans 2>/dev/null || true
+          
+          # Clean up any existing MongoDB containers to prevent port conflicts
+          containers=$(docker ps -a -q --filter "name=mongo" 2>/dev/null) || true
+          if [ -n "$containers" ]; then
+            echo "Stopping and removing existing MongoDB containers..."
+            docker stop $containers || true
+            docker rm $containers || true
+          fi
+          
+          # Ensure no containers are using port 27017
+          port_users=$(docker ps -q --filter "publish=27017") || true
+          if [ -n "$port_users" ]; then
+            echo "Stopping containers using port 27017..."
+            docker stop $port_users || true
+            docker rm $port_users || true
+          fi
+          
+          echo "Environment cleaned up and ready for testing."
+
+  test:
+    needs: cleanup
+    if: github.ref == 'refs/heads/development' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: cd ./backend && go mod download
+
+      - name: Run tests
+        env:
+          MONGO_URI: mongodb://localhost:27017
+          DB_NAME: swiftcodes
+          LOAD_INITIAL_DATA: true
+          SWIFT_DATA_FILE: ./configs/default-data.csv
+          VERSION: v1
+          API_DEBUG: true
+          LOGGER_DEBUG: true
+        run: cd ./backend && go test ./... -v
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Cleanup Docker containers
+        run: |
+          # More compatible way to stop and remove containers
+          containers=$(docker ps -a -q --filter "name=mongo" 2>/dev/null) || true
+          if [ -n "$containers" ]; then
+            docker stop $containers || true
+            docker rm $containers || true
+          fi
+          
+          # Clean up any Docker Compose resources
+          docker compose down -v --remove-orphans 2>/dev/null || true
+          
+          # Prune unused volumes and networks (if supported)
+          docker volume prune -f 2>/dev/null || true
+          docker network prune -f 2>/dev/null || true
+
+      - name: Install dependencies
+        run: cd ./backend && go mod download
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Deployment
+        env:
+          MONGO_URI: mongodb://localhost:27017
+          DB_NAME: swiftcodes
+          LOAD_INITIAL_DATA: true
+          SWIFT_DATA_FILE: ./configs/default-data.csv
+          VERSION: v1
+          API_DEBUG: false
+          LOGGER_DEBUG: true # To be configured
+        run: |
+          chmod +x ./scripts/deployment/deploy.sh && \
+          ./scripts/deployment/deploy.sh
+          
+      - name: Verify deployment
+        run: |
+          # Wait for containers to be fully up
+          sleep 10
+          # List running containers for verification
+          docker ps 
+  stress_test:
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Install wrk
+        run: | 
+          sudo apt-get update
+          sudo apt-get install -y wrk
+          sudo apt-get install -y libssl-dev
+
+      - name: Stress test
+        run: |
+          cd scripts/tests/custom
+          chmod +x wrk_test.sh
+          ./wrk_test.sh
