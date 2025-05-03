@@ -16,16 +16,17 @@ services:
       - MONGO_URI=mongodb://mongo:27017           # Mongo DB connection 
       - DB_NAME=swiftcodes                        # Name of the database 
       - LOGGER_PREFIX=api                         # Prefix for the logger  
-      - LOGGER_DEBUG=false                        # Enable debug logging        
-      - API_DEBUG=true                            # Enable API debug responses with full error messages
+      - LOGGER_DEBUG=flase                        # Enable debug logging        
+      - API_DEBUG=false                           # Enable API debug responses with full error messages
       - BANKS_COLLECTION_NAME=banks               # Name of the collection for banks
       - COUNTRIES_COLLECTION_NAME=countries       # Name of the collection for countries
       - LOAD_INITIAL_DATA=true                    # Load initial data into the database
       - SWIFT_DATA_FILE=configs/default-data.csv  # Inital data file
       - VERSION=v1                                # Version of the API, will be used in the URL            
       - SPEEDUP_MODE=true                         # Discards all of the logs, speeds up the API, but all of the log information will be lost
+      - LOG_TO_FILE=true                           # Log to file instead of stdout
     volumes:
-      - ./backend:/app
+      - ./backend/logs:/app/logs
       - go-mod-cache:/go/pkg/mod
     
   db:
@@ -43,7 +44,6 @@ services:
     image: grafana/promtail:latest
     volumes:
       - ./backend/logs:/backend/logs
-      # - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - ./logging/promtail-config.yml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
     depends_on:

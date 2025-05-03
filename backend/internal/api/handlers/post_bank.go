@@ -49,7 +49,7 @@ func (rh *RequestsHandler) PostBankEntry(w http.ResponseWriter, r *http.Request)
 			statusCode = http.StatusBadRequest
 		}
 
-		errResponse := map[string]string{"message": "Country code not found"}
+		errResponse := map[string]string{"message": "Error while creating a bank entry"}
 		if IsAPIDebugActive() {
 			errResponse["message"] = err.Error()
 		}
