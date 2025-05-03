@@ -2,8 +2,8 @@ package service
 
 import (
 	"errors"
-	"log"
 
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/api/middleware"
 	"github.com/Hbrtjm/SWIFT_API/backend/internal/db/repository"
 	"github.com/Hbrtjm/SWIFT_API/backend/internal/parser"
 )
@@ -12,11 +12,11 @@ import (
 type SwiftCodeService struct {
 	repo   *repository.MongoRepository
 	parser *parser.SwiftFileParser
-	logger *log.Logger
+	logger *middleware.Logger
 }
 
 // NewSwiftCodeService creates a new SwiftCodeService
-func NewSwiftCodeService(repo *repository.MongoRepository, parser *parser.SwiftFileParser, logger *log.Logger) *SwiftCodeService {
+func NewSwiftCodeService(repo *repository.MongoRepository, parser *parser.SwiftFileParser, logger *middleware.Logger) *SwiftCodeService {
 	return &SwiftCodeService{
 		repo:   repo,
 		parser: parser,
@@ -24,32 +24,33 @@ func NewSwiftCodeService(repo *repository.MongoRepository, parser *parser.SwiftF
 	}
 }
 
-// LoadInitialData parses and loads bank data from a file into the database
+// LoadInitialData parses and loads bank and country data from a file into the database
 func (s *SwiftCodeService) LoadInitialData(filename string) error {
-	// Parse the file into Bank models
-	banks, err := s.parser.ParseFile(filename)
+	// Parse the file into Bank and Country models
+	banks, countries, err := s.parser.ParseFile(filename)
 	if err != nil {
-		s.logger.Printf("Error parsing file: %v", err)
+		s.logger.Error("Error parsing file: %v", err)
 		return err
 	}
 
-	s.logger.Printf("Parsed %d banks from file", len(banks))
+	s.logger.Info("Parsed %d banks and %d countries from file", len(banks), len(countries))
 	if len(banks) == 0 {
 		return errors.New("no banks found in file")
 	}
 
-	// Convert banks from the file to the interface array
-	data := make([]interface{}, len(banks))
-	for i, bank := range banks {
-		// Extract branch code (first 8 characters)
-		if len(bank.SwiftCode) >= 8 {
-			bank.BranchCode = bank.SwiftCode[:8]
-		}
-		data[i] = bank
+	// Insert the banks into MongoDB
+	s.logger.Info("Inserting %d banks into database", len(banks))
+	err = s.repo.InsertManyBanks(banks)
+	if err != nil {
+		return err
 	}
 
-	// Insert the data into MongoDB
-	s.logger.Printf("Inserting %d banks into database", len(data))
-	// Swich to separate inserts
-	return s.repo.InsertMany(data)
+	// Insert the countries into MongoDB
+	s.logger.Info("Inserting %d countries into database", len(countries))
+	err = s.repo.InsertManyCountries(countries)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
