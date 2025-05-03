@@ -14,21 +14,22 @@ import (
 )
 
 const (
-	testMongoURI       = "mongodb://localhost:27017"
-	testDBName         = "swiftcodes_test"
-	testCollectionName = "banks_test"
+	testMongoURI                = "mongodb://localhost:27017"
+	testDBName                  = "swiftcodes_test"
+	testBanksCollectionName     = "banks_test"
+	testCountriesCollectionName = "countries_test"
 )
 
 var repo *MongoRepository
 
 // Setup function to initialize the test database
 func setupTestDB() (*MongoRepository, error) {
-	r, err := NewMongoRepository(testMongoURI, testDBName, testCollectionName)
+	r, err := NewMongoRepository(testMongoURI, testDBName, testBanksCollectionName, testCountriesCollectionName)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
 	err = r.database.Drop(ctx)
@@ -49,7 +50,7 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	if repo != nil {
-		repo.Close()
+		repo.CloseConnection()
 	}
 
 	os.Exit(code)
@@ -59,59 +60,53 @@ func TestMain(m *testing.M) {
 func addTestData(t *testing.T) {
 	testBanks := []models.Bank{
 		{
-			CountryCode: "AL",
+			CountryISO2: "AL",
 			SwiftCode:   "AAISALTRXXX",
 			CodeType:    "BIC11",
 			BankName:    "UNITED BANK OF ALBANIA SH.A",
 			Address:     "HYRJA 3 RR. DRITAN HOXHA ND. 11 TIRANA, TIRANA, 1023",
 			TownName:    "TIRANA",
-			CountryName: "ALBANIA",
-			TimeZone:    "Europe/Tirane",
 		},
 		{
-			CountryCode: "BG",
+			CountryISO2: "BG",
 			SwiftCode:   "ABIEBGS1XXX",
 			CodeType:    "BIC11",
 			BankName:    "ABV INVESTMENTS LTD",
 			Address:     "TSAR ASEN 20  VARNA, VARNA, 9002",
 			TownName:    "VARNA",
-			CountryName: "BULGARIA",
-			TimeZone:    "Europe/Sofia",
 		},
 		{
-			CountryCode: "UY",
+			CountryISO2: "UY",
 			SwiftCode:   "AFAAUYM1XXX",
 			CodeType:    "BIC11",
 			BankName:    "AFINIDAD A.F.A.P.S.A.",
 			Address:     "PLAZA INDEPENDENCIA 743  MONTEVIDEO, MONTEVIDEO, 11000",
 			TownName:    "MONTEVIDEO",
-			CountryName: "URUGUAY",
-			TimeZone:    "America/Montevideo",
 		},
 	}
 
 	for _, bank := range testBanks {
-		err := repo.Insert(bank)
+		err := repo.InsertBank(bank)
 		require.NoError(t, err)
 	}
 }
 
 // cleanTestData removes all test data
 func cleanTestData(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	err := repo.collection.Drop(ctx)
+	err := repo.bankCollection.Drop(ctx)
 	require.NoError(t, err)
 }
 
 // TestNewMongoRepository tests the creation of a new repository
 func TestNewMongoRepository(t *testing.T) {
-	repo, err := NewMongoRepository(testMongoURI, testDBName, testCollectionName)
+	repo, err := NewMongoRepository(testMongoURI, testDBName, testBanksCollectionName, testCountriesCollectionName)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 
-	repo, err = NewMongoRepository("mongodb://invalid:27017", testDBName, testCollectionName)
+	repo, err = NewMongoRepository("mongodb://invalid:27017", testDBName, testBanksCollectionName, testCountriesCollectionName)
 	assert.Error(t, err)
 	assert.Nil(t, repo)
 }
@@ -121,63 +116,56 @@ func TestInsert(t *testing.T) {
 	cleanTestData(t)
 
 	bank := models.Bank{
-		CountryCode: "AL",
+		CountryISO2: "AL",
 		SwiftCode:   "AAISALTRXXX",
 		CodeType:    "BIC11",
 		BankName:    "UNITED BANK OF ALBANIA SH.A",
 		Address:     "HYRJA 3 RR. DRITAN HOXHA ND. 11 TIRANA, TIRANA, 1023",
 		TownName:    "TIRANA",
-		CountryName: "ALBANIA",
-		TimeZone:    "Europe/Tirane",
 	}
-	err := repo.Insert(bank)
+	err := repo.InsertBank(bank)
 	assert.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
 	var result models.Bank
-	err = repo.collection.FindOne(ctx, bson.M{"swiftCode": "AAISALTRXXX"}).Decode(&result)
+	err = repo.bankCollection.FindOne(ctx, bson.M{"swiftCode": "AAISALTRXXX"}).Decode(&result)
 	assert.NoError(t, err)
 	assert.Equal(t, bank.BankName, result.BankName)
 	assert.Equal(t, bank.Address, result.Address)
-	assert.Equal(t, bank.TimeZone, result.TimeZone)
 }
 
 // TestInsertMany tests inserting multiple documents
 func TestInsertMany(t *testing.T) {
 	cleanTestData(t)
 
-	banks := []interface{}{
-		models.Bank{
-			CountryCode: "AL",
+	banks := []models.Bank{
+		{
+			CountryISO2: "AL",
 			SwiftCode:   "MULTAL123XXX",
 			CodeType:    "BIC11",
 			BankName:    "Multi Bank Albania",
 			Address:     "Street 1, Tirana",
 			TownName:    "TIRANA",
-			CountryName: "ALBANIA",
-			TimeZone:    "Europe/Tirane",
 		},
-		models.Bank{
-			CountryCode: "UY",
+		{
+			CountryISO2: "UY",
 			SwiftCode:   "MULTUY456XXX",
 			CodeType:    "BIC11",
 			BankName:    "Multi Bank Uruguay",
 			Address:     "Street 2, Montevideo",
 			TownName:    "MONTEVIDEO",
-			CountryName: "URUGUAY",
-			TimeZone:    "America/Montevideo",
 		},
 	}
 
-	err := repo.InsertMany(banks)
+	err := repo.InsertManyBanks(banks)
 	assert.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	count, err := repo.collection.CountDocuments(ctx, bson.M{})
+	count, err := repo.bankCollection.CountDocuments(ctx, bson.M{})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 }
@@ -190,16 +178,14 @@ func TestFindBySwiftCode(t *testing.T) {
 	result, err := repo.FindBySwiftCode("AAISALTRXXX")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "AAISALTRXXX", result["swiftCode"])
-	assert.Equal(t, "UNITED BANK OF ALBANIA SH.A", result["bankName"])
-	assert.Equal(t, "TIRANA", result["townName"])
-	assert.Equal(t, "Europe/Tirane", result["timeZone"])
-	assert.Equal(t, "BIC11", result["codeType"])
+	assert.Equal(t, "AAISALTRXXX", result.SwiftCode)
+	assert.Equal(t, "UNITED BANK OF ALBANIA SH.A", result.BankName)
+	assert.Equal(t, "TIRANA", result.TownName)
 
-	result, err = repo.FindBySwiftCode("NONEXISTENTOOO")
+	result, err = repo.FindBySwiftCode("NONEXISTENT")
 	assert.Error(t, err)
-	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "no bank found with SWIFT code NONEXISTENTOOO")
+	assert.Equal(t, models.Bank{}, result)
+	assert.Contains(t, err.Error(), "no bank found with SWIFT code NONEXISTENT")
 }
 
 // TestFindByCountry tests finding documents by country code
@@ -210,7 +196,7 @@ func TestFindByCountry(t *testing.T) {
 	results, err := repo.FindByCountry("BG")
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
-	assert.Equal(t, "ABIEBGS1XXX", results[0]["swiftCode"])
+	assert.Equal(t, "ABIEBGS1XXX", results[0].SwiftCode)
 
 	results, err = repo.FindByCountry("XX")
 	assert.Error(t, err)
@@ -240,15 +226,15 @@ func TestDelete(t *testing.T) {
 	err := repo.Delete("AAISALTRXXX")
 	assert.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	count, err := repo.collection.CountDocuments(ctx, bson.M{})
+	count, err := repo.bankCollection.CountDocuments(ctx, bson.M{})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 
 	// Test deleting non-existing document
-	err = repo.Delete("NONEXISTENTOOO")
+	err = repo.Delete("NONEXISTENT")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
