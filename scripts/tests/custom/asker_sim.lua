@@ -1,19 +1,26 @@
 -- Predefined arrays
 local swiftCodes = {"AAISALTRXXX", "BPKOPLPWXXX", "BREXPLPWXXX", "BREXPLPWMBK", "BSCHCLR10R5"}
 local countryCodes = {"BG", "PL", "MT", "CL","LV","UY"}
-local swiftDelCodes = {"PTFIPLPWE70","IGTRPLPWXXX","MNAAPLP2XXX","PKOPPLPWSMK","PTFIPLPWFEO","PTFIPLPWP65","CBBRLV22TIP","CFTEMTM3XXX","RIBRLV22TIP","BIGKBGSFXXX","KKSLLV22XXX","APAHMTMTXXX","UNLALV2XTPS","REVCMTM2XXX","ECCVCLRSXXX","BMPBPLPPXXX","HABALV22TIP","PARXLV22TIP","MFMAMTM2XXX","NWDMPLP2XXX","MSDMPLP2XXX","TRELLV22ZIB","FEMAMTMADCA","PYMXMTMAXXX","ANFVMTMMXXX","LAPBLV2XTIP","BCECCLRMFCE","BCECCLRMFES","BCECCLRMFRP","EMOEMTM2XXX","SDBMMCM2TPS","LACBLV2XZMS","AFPCCLRSXXX","CBEUUYMM0ME","CBEUUYMM0MG","ECFEBG22XXX","LTZIBG22XXX","RIKOLV2XIPA","TEPJBGSFXXX","PTFIPLPWGPL","BCECCLRMCSH","PANXLV22XXX","VPAYMTM2XXX","PANXPLP2XXX","SOGEMCM1TPS","ALBPPLPWCUS","BATSCLR2XXX","BATSCLR3XXX","AKFSMTM2XXX","LCDELV22EEX","LCDELV22LTX","LCDELV22LVX","BLIKPLPWXXX","CITIPLPXBRO","LCDELV22CLM","ISAOPLPPXXX","EKIRPLS1XXX","NOSJPLPPXXX","PYMXMTMTMAL","FNTMPLP2XXX","CCUHMTMTMBB","DIEUMTMTXXX","TPMLMTMTXXX","TIMVMTM2XXX","LAVFLV22XXX","MTCCMTMTSTJ","NEXDMTM2XXX","AFNTCLRSXXX","BCECCLRRXXX","MOPZPLP2XXX","PYMNBGS2XXX","ICDRMTMTXXX","CCTUCLRRXXX","PCCACLR2XXX","APAHMTMVXXX","DPCDBGS2XXX","CBBRLV22OVE","MIMKLV22XXX","KGITMTMTXXX","BNBGBGSEXXX","BSBGBGSFST2","BSBGBGSFTPS","BNBGBGSAXXX","BNBGBGSBXXX","TPEOPLPWXXX","JOPSLV22XXX","LCDELV22CEE","LCDELV22CLT","FNOBCLR2XXX","AGDSCLRSXXX","DOAVMCMCXXX","EMSYMTMTXXX","MALTMTMTECM","GUAVPLPPXXX","BSBGBGS2XXX","CEDPBGSFCLX","IDXOLV22XXX","THRIBGS2XXX","FESKPLP2XXX","BLLGMTMBXXX","BLLGMTMTXXX","LACBLV2XEKS","SIAXLV22XXX","TRUMMTM2XXX","SOOZPLPPXXX","NBPLPLPDREZ","MSEMMCMCXXX","RTMBLV2XTIP","SYPLMTM2XXX","LAPBLV2X011","KDPWPLPW1AM","KDPWPLPWCAP","KDPWPLPWPEN","CULRMTMMXXX","IFSMMTM2XXX","TPEOPLPWAAS","TPEOPLPWARW","TPEOPLPWASZ","TPEOPLPWAUS","TPEOPLPWB15","TPEOPLPWBOW","TPEOPLPWCHI","TPEOPLPWDA2","TPEOPLPWDUS","TPEOPLPWEKO","TPEOPLPWKOM","TPEOPLPWKON","TPEOPLPWKOP","TPEOPLPWMEG","TPEOPLPWOBP","TPEOPLPWODO","TPEOPLPWODP","TPEOPLPWOST","TPEOPLPWPAD","TPEOPLPWPDA","TPEOPLPWPDS","TPEOPLPWPOS","TPEOPLPWSEN","TPEOPLPWSGD","TPEOPLPWSGF","TPEOPLPWSGK","TPEOPLPWSIN","TPEOPLPWSRR","TPEOPLPWSTW","TPEOPLPWZRO","TPEOPLPWOEP","TPEOPLPWP20","TPEOPLPWP25","TPEOPLPWP30","TPEOPLPWP35","TPEOPLPWP40","TPEOPLPWP45","TPEOPLPWP50","TPEOPLPWP55","TPEOPLPWP60","TPEOPLPWP65","TPEOPLPWPAE","TPEOPLPWPFI","TPEOPLPWPOD","IGESPLPPXXX","TPEOPLPWZRA","BSBGBGSFBOR","STANALTAXXX","IDXOLV22TIP","KCCPPLPW1AM","KDPWPLPAASD","PYALALT2XXX"}
 -- Base URL parts
 local basePath = "/v1/swift-codes"
+local requestCounter = 0
+local lastPostedSwiftCode = nil
 
 -- Set up before each thread starts
 math.randomseed(os.time())
 
 -- Choose method and path per request
 request = function()
-    local choice = math.random(1, 2)
+    local choice = math.random(1, 3)
     local swiftCode = swiftCodes[math.random(#swiftCodes)]
-    local swiftCodeDel = swiftDelCodes[math.random(#swiftDelCodes)]
     local countryCode = countryCodes[math.random(#countryCodes)]
+    
+    -- If we posted a swift code last request, we need to delete it
+    if lastPostedSwiftCode then
+        local deleteRequest = wrk.format("DELETE", basePath .. "/" .. lastPostedSwiftCode)
+        lastPostedSwiftCode = nil
+        return deleteRequest
+    end
 
     if choice == 1 then
         -- GET /swift-codes/{swiftCode}
@@ -24,22 +31,24 @@ request = function()
         return wrk.format("GET", basePath .. "/country/" .. countryCode)
 
     elseif choice == 3 then
-        POST /swift-codes
+        -- POST /swift-codes
+        local newSwiftCode = "TESTDE" .. math.random(10, 99) .. "XXX"
         local body = [[
         {
             "countryISO2": "DE",
-            "swiftCode": "TESTDE45XXX",
+            "swiftCode": "]] .. newSwiftCode .. [[",
             "bankName": "THE GERMAN BANK",
             "address": "456 TEST STRASSE",
             "isHeadquarter": true,
             "countryName": "GERMANY"
         }]]
+        
+        -- Store the swift code to delete in the next request
+        lastPostedSwiftCode = newSwiftCode
         return wrk.format("POST", basePath, {["Content-Type"] = "application/json"}, body)
-
-    -- elseif choice == 4 then
-        -- DELETE /swift-codes/{swiftCode}
-        -- return wrk.format("DELETE", basePath .. "/" .. swiftCode)
-    
     end
 end
 
+-- This function is called when a response is received
+response = function(status, headers, body)
+end
