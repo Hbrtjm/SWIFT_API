@@ -17,7 +17,7 @@ services:
       - DB_NAME=swiftcodes                        # Name of the database 
       - LOGGER_PREFIX=api                         # Prefix for the logger  
       - LOGGER_DEBUG=flase                        # Enable debug logging        
-      - API_DEBUG=false                           # Enable API debug responses with full error messages
+      - API_DEBUG=true                            # Enable API debug responses with full error messages
       - BANKS_COLLECTION_NAME=banks               # Name of the collection for banks
       - COUNTRIES_COLLECTION_NAME=countries       # Name of the collection for countries
       - LOAD_INITIAL_DATA=true                    # Load initial data into the database

@@ -322,6 +322,14 @@ chmod +x stress_test.sh
 ./stress_test.sh
 ```
 
+To test all the enpoints run:
+
+```bash
+cd ./SWIFT_API/scripts/tests/custom
+chmod +x sequence_test.sh
+./sequence_test.sh
+```
+
 ## Docker Configuration
 
 The project uses a multi-stage build process for the API service:
