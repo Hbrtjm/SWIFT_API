@@ -156,5 +156,11 @@ jobs:
       - name: Stress test
         run: |
           cd scripts/tests/custom
-          chmod +x wrk_test.sh
-          ./wrk_test.sh
+          chmod +x stress_test.sh
+          ./stress_test.sh
+          
+      - name: Sequence test
+        run: |
+          cd scripts/tests/custom
+          chmod +x sequence_test.sh
+          ./sequence_test.sh
