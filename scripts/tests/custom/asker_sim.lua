@@ -23,18 +23,18 @@ request = function()
         -- GET /swift-codes/country/{countryCode}
         return wrk.format("GET", basePath .. "/country/" .. countryCode)
 
-    -- elseif choice == 3 then
-        -- POST /swift-codes
-        -- local body = [[
-        -- {
-        --     "countryISO2": "DE",
-        --     "swiftCode": "TESTDE45XXX",
-        --     "bankName": "TEST GERMAN BANK",
-        --     "address": "456 TEST STRASSE",
-        --     "isHeadquarter": true,
-        --     "countryName": "GERMANY"
-        -- }]]
-        -- return wrk.format("POST", basePath, {["Content-Type"] = "application/json"}, body)
+    elseif choice == 3 then
+        POST /swift-codes
+        local body = [[
+        {
+            "countryISO2": "DE",
+            "swiftCode": "TESTDE45XXX",
+            "bankName": "THE GERMAN BANK",
+            "address": "456 TEST STRASSE",
+            "isHeadquarter": true,
+            "countryName": "GERMANY"
+        }]]
+        return wrk.format("POST", basePath, {["Content-Type"] = "application/json"}, body)
 
     -- elseif choice == 4 then
         -- DELETE /swift-codes/{swiftCode}

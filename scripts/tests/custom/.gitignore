@@ -1,0 +1,4 @@
+# Ignore all what's produced by the tests
+*.json
+# Except the expected file of course
+!expected_country_test.json
