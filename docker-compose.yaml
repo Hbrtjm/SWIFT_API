@@ -24,7 +24,7 @@ services:
       - SWIFT_DATA_FILE=configs/default-data.csv  # Inital data file
       - VERSION=v1                                # Version of the API, will be used in the URL            
       - SPEEDUP_MODE=true                         # Discards all of the logs, speeds up the API, but all of the log information will be lost
-      - LOG_TO_FILE=true                           # Log to file instead of stdout
+      - LOG_TO_FILE=true                          # Log to file instead of stdout
     volumes:
       - ./backend/logs:/app/logs
       - go-mod-cache:/go/pkg/mod

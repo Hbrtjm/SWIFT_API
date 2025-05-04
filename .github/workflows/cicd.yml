@@ -79,7 +79,7 @@ jobs:
 
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main'
+    # if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -158,7 +158,7 @@ jobs:
           cd scripts/tests/custom
           chmod +x stress_test.sh
           ./stress_test.sh
-          
+
       - name: Sequence test
         run: |
           cd scripts/tests/custom
