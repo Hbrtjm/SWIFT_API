@@ -17,10 +17,10 @@ if [ $? -ne 0 ]; then
     printf "You can install it by running:\n"
     printf " $\tsudo apt-get update\n $\tsudo apt-get install docker-compose-plugin"
     printf "or by following the instructions at https://docs.docker.com/compose/install/linux/\n"
-    exit 1
+    exit 2
 fi
 
-# INFORMATION - If the application is being run as a part of the github actions job, the cleanup will not failt, just continue to deployment
+# INFORMATION - If the application is being run as a part of the github actions job, the cleanup will not fail, just continue to deployment
 
 # Clean up any existing containers from previous runs
 echo "Cleaning up existing containers..."
