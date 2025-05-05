@@ -339,7 +339,7 @@ docker start swift_api-api-1
 Then re-run the stress_test.sh.:
 ```bash
 # In directory ./SWIFT_API/scripts/tests/custom
-./sequence_test.sh
+./stress_test.sh
 ```
 
 ## Docker Configuration
