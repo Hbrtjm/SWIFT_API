@@ -36,7 +36,7 @@ func NewRouter(service *service.SwiftCodeService, logger *middleware.Logger) (ro
 	api.HandleFunc("/swift-codes", swiftDatabaseResponseHandler.PostBankEntry).Methods(http.MethodPost)
 	api.HandleFunc("/swift-codes/{swiftCode}", swiftDatabaseResponseHandler.DeleteSwiftCode).Methods(http.MethodDelete)
 
-	// Health check endpoint
+	// Health check endpoint, used in testing
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		logger.Info("Health check requested")
 		w.WriteHeader(http.StatusOK)

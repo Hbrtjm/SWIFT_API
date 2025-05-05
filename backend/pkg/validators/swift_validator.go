@@ -55,7 +55,7 @@ func (sv *SwiftCodeValidator) ValidateWithIsHeadquarter(code string, isHeadquart
 	err := sv.Validate(code)
 
 	if err != nil {
-		return fmt.Errorf("error checking if bank is headquarter: %s", err)
+		return fmt.Errorf("error checking if bank is headquarter: %w", err)
 	}
 	if code[8:] == "XXX" && !isHeadquarter {
 		return errors.New("the bank should be marked as a headquarter")

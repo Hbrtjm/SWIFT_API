@@ -21,10 +21,8 @@ func (tzv *TimeZoneValidator) Validate(value interface{}, countryName string) er
 
 	timeZone = strings.ToUpper(timeZone)
 
-	// capitalName := strings.ToUpper(string(capitalName[0])) + capitalName[1:]
 	capitalName := `[A-Z]{1}[a-zA-Z]+`
 
-	// re := regexp.MustCompile(`^(Europe|Asia|America)/` + capitalName + `$`)
 	re := regexp.MustCompile(`^[A-Za-z]+/` + capitalName + `$`)
 	if !re.MatchString(timeZone) {
 		return fmt.Errorf("invalid timeZone format: %s", timeZone)

@@ -36,6 +36,8 @@ fi
 
 # Start the application
 echo "Starting application..."
+cd ../..
+pwd
 docker compose up -d --build
 
 echo "Deployment complete. Containers are running:"

@@ -10,7 +10,7 @@ import (
 func (s *SwiftCodeService) DeleteSwiftCode(code string) error {
 	swiftValidator := validators.NewSwiftCodeValidator()
 	swiftValidator.Validate(code)
-	
+
 	if err := swiftValidator.Validate(code); err != nil {
 		return fmt.Errorf("invalid SWIFT code %s: %v", code, err)
 	}

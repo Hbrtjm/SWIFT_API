@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/api/middleware"
 	"github.com/Hbrtjm/SWIFT_API/backend/internal/db/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,7 @@ var repo *MongoRepository
 
 // Setup function to initialize the test database
 func setupTestDB() (*MongoRepository, error) {
-	r, err := NewMongoRepository(testMongoURI, testDBName, testBanksCollectionName, testCountriesCollectionName)
+	r, err := NewMongoRepository(testMongoURI, testDBName, testBanksCollectionName, testCountriesCollectionName, middleware.NewNoLogger())
 	if err != nil {
 		return nil, err
 	}
@@ -102,11 +103,11 @@ func cleanTestData(t *testing.T) {
 
 // TestNewMongoRepository tests the creation of a new repository
 func TestNewMongoRepository(t *testing.T) {
-	repo, err := NewMongoRepository(testMongoURI, testDBName, testBanksCollectionName, testCountriesCollectionName)
+	repo, err := NewMongoRepository(testMongoURI, testDBName, testBanksCollectionName, testCountriesCollectionName, middleware.NewNoLogger())
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 
-	repo, err = NewMongoRepository("mongodb://invalid:27017", testDBName, testBanksCollectionName, testCountriesCollectionName)
+	repo, err = NewMongoRepository("mongodb://invalid:27017", testDBName, testBanksCollectionName, testCountriesCollectionName, middleware.NewNoLogger())
 	assert.Error(t, err)
 	assert.Nil(t, repo)
 }

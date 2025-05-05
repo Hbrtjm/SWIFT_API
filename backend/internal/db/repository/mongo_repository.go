@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Hbrtjm/SWIFT_API/backend/internal/api/middleware"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -26,12 +27,26 @@ type MongoRepository struct {
 }
 
 // NewMongoRepository creates a new MongoRepository instance
-func NewMongoRepository(uri, dbName, bankCollectionName, countriesCollectionName string) (*MongoRepository, error) {
-	client, err := NewMongoClient(uri)
+func NewMongoRepository(uri, dbName, bankCollectionName, countriesCollectionName string, logger *middleware.Logger) (*MongoRepository, error) {
+	var client *mongo.Client
+	var err error
+
+	maxRetries := 10
+	delay := 5 * time.Second
+
+	// Repeat connection retries until we connect, this will run for 50 seconds in the current setting
+	for i := 0; i < maxRetries; i++ {
+		client, err = NewMongoClient(uri)
+		if err == nil && PingMongo(client) == nil {
+			break
+		}
+		logger.Info("Mongo is not ready, retrying for the %d time out of %d", i, maxRetries)
+		time.Sleep(delay)
+	}
 
 	// Connection failed
 	if err != nil {
-		return nil, fmt.Errorf("failed to create MongoDB client: %w", err)
+		return nil, fmt.Errorf("failed to create MongoDB client: %w after %d retries", err, maxRetries)
 	}
 
 	// Check connection
@@ -64,7 +79,7 @@ func NewMongoClient(uri string) (*mongo.Client, error) {
 }
 
 func PingMongo(client *mongo.Client) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	return client.Ping(ctx, nil)
