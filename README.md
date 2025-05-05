@@ -330,6 +330,18 @@ chmod +x sequence_test.sh
 ./sequence_test.sh
 ```
 
+### Disclaimer
+
+There might be an issue with starting the api server - sometimes the stress_test.sh or sequence_test.sh might fail on a slower computer. This is due to API server failing to connect to mongo while it's starting up. The solution is to once again run the server and it will work as usual. Use:
+```bash
+docker start swift_api-api-1
+```
+Then re-run the stress_test.sh.:
+```bash
+# In directory ./SWIFT_API/scripts/tests/custom
+./sequence_test.sh
+```
+
 ## Docker Configuration
 
 The project uses a multi-stage build process for the API service:
