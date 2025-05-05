@@ -45,7 +45,7 @@ func setupTestEnvironment() error {
 
 	testLogger = middleware.New(logFile, "", true)
 
-	repo, err = repository.NewMongoRepository(testMongoURI, testDBName, testBankCollectionName, testCountriesCollectionName)
+	repo, err = repository.NewMongoRepository(testMongoURI, testDBName, testBankCollectionName, testCountriesCollectionName, middleware.NewNoLogger())
 	if err != nil {
 		return err
 	}

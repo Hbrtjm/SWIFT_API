@@ -24,7 +24,7 @@ func main() {
 
 	logFileName := time.Now().Format("2006_01_02-15_04_05") + "-" + loggerPrefix + ".log"
 	logger, err := middleware.FileDefaultLogger("./logs", logFileName, loggerPrefix)
-	
+
 	logToFile := util.GetEnvOrDefault("LOG_TO_FILE", "false")
 
 	if err != nil || logToFile == "false" {
@@ -49,7 +49,7 @@ func main() {
 	// Debug information about MongoDB connection
 	logger.Debug("Connecting to MongoDB at %s", mongoURI)
 
-	repo, err := repository.NewMongoRepository(mongoURI, dbName, banksCollectionName, countriesCollectionName)
+	repo, err := repository.NewMongoRepository(mongoURI, dbName, banksCollectionName, countriesCollectionName, logger)
 	if err != nil {
 		logger.Fatal("Failed to connect to database: %v", err)
 	}

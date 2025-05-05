@@ -53,7 +53,7 @@ func (r *MongoRepository) FindByBranchCode(branchCode string) ([]map[string]inte
 	if err = cursor.All(ctx, &banks); err != nil {
 		return nil, err
 	}
-	
+
 	// Then convert each Bank struct to a map
 	results := make([]map[string]interface{}, len(banks))
 	for i, bank := range banks {
